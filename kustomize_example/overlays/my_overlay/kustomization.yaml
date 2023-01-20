@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: repo-backup
+
+bases:
+  - ../../base
+
+patches:
+- path: patches/change-repo-and-bucket-patch.yaml
+  target:
+    kind: CronJob
+    name: repo-backup
+
+resources:
+- secret.yaml
+- namespace.yaml

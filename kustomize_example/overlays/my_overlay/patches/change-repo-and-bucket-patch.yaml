@@ -1,0 +1,3 @@
+- op: replace
+  path: "/spec/jobTemplate/spec/template/spec/containers/0/command/2"
+  value: /data/backup.sh my-org/my-repo my-gcs-bucket
