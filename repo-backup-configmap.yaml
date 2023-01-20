@@ -49,9 +49,7 @@ data:
             err "git clone output:"
             
             # Logging git_error as error line by line
-            while IFS= read -r line;do
-              err "$line"
-            done <<< "$git_error"
+            err "$git_error"
 
             exit 1
           fi
@@ -75,9 +73,7 @@ data:
           err "gsutil error output snippet:"
           
           # Logging gsutil_error as error line by line
-          while IFS= read -r line;do
-            err "$line"
-          done <<< "$gsutil_error"
+          err "$gsutil_error"
 
           exit 1
         fi
