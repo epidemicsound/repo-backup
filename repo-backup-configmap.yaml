@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: repo-backup-script-cm
+data:
+  backup.sh: |
+    #!/bin/sh
+
+    readonly GITHUB_REPO="$( echo $1 | tr '[:upper:]' '[:lower:]' )"
+    readonly GCS_BUCKET="$( echo $2 | tr '[:upper:]' '[:lower:]' )"
+
+    GITHUB_REPO_NAME="$(echo $GITHUB_REPO | cut -d '/' -f 2)"
+
+    errorcode=0
+
+    err() {
+      echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
+    }
+
+    log() {
+      echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*"
+    }
+
+    configure_git() {
+      log "Configuring git locally"
+      mkdir /root/.ssh
+      touch /root/.ssh/known_hosts
+      cp /data/deploy-key/id_rsa /root/.ssh/id_rsa
+      ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+      log "Git successfully configured"
+    }
+
+    clone_repo() {
+        if [ -z "${GITHUB_REPO}" ]; then
+        err "Repository is not set";
+        exit 1
+        fi
+
+        log "Attempting to clone git repo: '${GITHUB_REPO_NAME}'"
+
+        { # try
+          git clone --depth 1 git@github.com:"${GITHUB_REPO}".git > git.log 2>&1 
+        } || { # catch
+          errorcode=$?
+          if (($errorcode != 0)); then
+            git_error=`cat git.log` 
+
+            err "Unable to clone repo '${GITHUB_REPO_NAME}', Error code: '${errorcode}'"
+            err "git clone output:"
+            
+            # Logging git_error as error line by line
+            while IFS= read -r line;do
+              err "$line"
+            done <<< "$git_error"
+
+            exit 1
+          fi
+        }
+        if (($errorcode == 0)); then 
+          log "Git repo '${GITHUB_REPO_NAME}' successfully cloned!";
+        fi
+    }
+
+    copy_files_to_gcs() {
+      log "Attempting to push files to bucket '${GCS_BUCKET}'"
+      { # try
+        gsutil -m cp -r ${GITHUB_REPO_NAME} gs://"${GCS_BUCKET}"/$(date +"%Y-%m-%d")/ 2> gsutil.log
+      } || {
+        errorcode=$?
+        if (($errorcode != 0)); then
+          # Reading last 3 lines from gsutil output for error message
+          gsutil_error=`cat gsutil.log | tail -n 3` 
+
+          err "Unable to push '${GITHUB_REPO_NAME}' to '${GCS_BUCKET}', Error code: '${errorcode}'"
+          err "gsutil error output snippet:"
+          
+          # Logging gsutil_error as error line by line
+          while IFS= read -r line;do
+            err "$line"
+          done <<< "$gsutil_error"
+
+          exit 1
+        fi
+      }
+      if (($errorcode == 0)); then 
+        log "'${GITHUB_REPO_NAME}' files successfully pushed to bucket '${GCS_BUCKET}'!";
+      fi
+    }
+
+    configure_git
+    clone_repo
+    copy_files_to_gcs
