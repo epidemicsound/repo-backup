@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: repo-backup
+spec:
+  schedule: "@daily"
+  jobTemplate:
+    spec:
+      backoffLimit: 4
+      template:
+        spec:
+          serviceAccountName: repo-backup
+          containers:
+          - name: clone-and-push
+            image: google/cloud-sdk:alpine
+            imagePullPolicy: IfNotPresent
+            command: 
+            - /bin/sh
+            - -c
+            - /data/backup.sh epidemicsound/repo-backup my-gcs-bucket
+            volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: repo-backup-deploy-key
+              mountPath: /data/deploy-key/
+              readOnly: true
+          volumes:
+            - name: repo-backup-deploy-key
+              secret:
+                secretName: repo-backup-privatekey
+                optional: false
+                defaultMode: 0600
+            - name: data
+              configMap:
+                name: repo-backup-script-cm
+                defaultMode: 0777
