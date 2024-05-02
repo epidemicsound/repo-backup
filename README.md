@@ -1,5 +1,5 @@
 # repo-backup
-A simple kubernetes cronjob that backs up a private github repository in a GCS-bucket in GCP.
+A simple kubernetes cronjob that backs up a private github repository in a GCS-bucket in GCP. 
 
 ## Prerequisites:
 - Enable Workload Identity on your GKE cluster: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#enable
