@@ -11,3 +11,4 @@ A simple kubernetes cronjob that backs up a private github repository in a GCS-b
 Use this repo as a kustomize base, applying patches in your own repositories to specify which repository and which bucket to back up.
 
 Example of how to use this exists in the directory `kustomize_example/`
+ 
